@@ -1,1 +1,4 @@
 *.log
+
+cmd/server/server
+cmd/client/client
