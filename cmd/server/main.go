@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	pubsub "github.com/aaronkarr/learn-pub-sub-starter/internal"
 	"github.com/aaronkarr/learn-pub-sub-starter/internal/gamelogic"
+	"github.com/aaronkarr/learn-pub-sub-starter/internal/pubsub"
 	"github.com/aaronkarr/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -24,6 +24,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not create MQ channel: %v", err)
 	}
+
+	_, logQueue, err := pubsub.DeclareAndBind(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug+".*",
+		pubsub.SimpleQueueDurable,
+	)
+	if err != nil {
+		log.Fatalf("couldn't create game log: %v", err)
+	}
+	fmt.Printf("Game log queue %v declared and bound!\n", logQueue)
 
 	gamelogic.PrintServerHelp()
 

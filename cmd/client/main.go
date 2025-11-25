@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	pubsub "github.com/aaronkarr/learn-pub-sub-starter/internal"
 	"github.com/aaronkarr/learn-pub-sub-starter/internal/gamelogic"
+	"github.com/aaronkarr/learn-pub-sub-starter/internal/pubsub"
 	"github.com/aaronkarr/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -25,20 +25,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("login error: %v", err)
 	}
+	gameState := gamelogic.NewGameState(username)
 
-	_, queue, err := pubsub.DeclareAndBind(
+	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
-		routing.PauseKey+"."+username,
+		routing.PauseKey+"."+gameState.GetUsername(),
 		routing.PauseKey,
 		pubsub.SimpleQueueTransient,
+		handlerPause(gameState),
 	)
 	if err != nil {
-		log.Fatalf("couldn't create MQ channel: %v", err)
+		log.Fatalf("couldn't subscribe to pause: %v", err)
 	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
-
-	gameState := gamelogic.NewGameState(username)
 
 	for {
 		command := gamelogic.GetInput()
