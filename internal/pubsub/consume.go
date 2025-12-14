@@ -7,6 +7,14 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+type Acktype int
+
+const (
+	Ack Acktype = iota
+	NackDiscard
+	NackRequeue
+)
+
 type SimpleQueueType int
 
 const (
@@ -20,7 +28,7 @@ func SubscribeJSON[T any](
 	queueName,
 	key string,
 	queueType SimpleQueueType,
-	handler func(T),
+	handler func(T) Acktype,
 ) error {
 	ch, queue, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
 	if err != nil {
@@ -54,8 +62,17 @@ func SubscribeJSON[T any](
 				fmt.Printf("could not unmarshal message: %v\n", err)
 				continue
 			}
-			handler(target)
-			msg.Ack(false)
+			switch handler(target) {
+			case Ack:
+				msg.Ack(false)
+				fmt.Println("Ack")
+			case NackDiscard:
+				msg.Nack(false, false)
+				fmt.Println("NackDiscard")
+			case NackRequeue:
+				msg.Nack(false, true)
+				fmt.Println("NackRequeue")
+			}
 		}
 	}()
 	return nil
